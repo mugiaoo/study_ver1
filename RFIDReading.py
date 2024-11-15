@@ -47,7 +47,7 @@ with open(input_file, 'r', encoding = 'utf-8') as infile, open(output_file, 'a',
             if rfid_id in labeled_data:
                 continue
             print(f"データ：{rfid_id}")
-            label = input("このデータに対するラベルを入力してください")    
+            label = input("このデータに対するラベルを入力してください：")    
             writer.writerow([rfid_id, label])
 
 
