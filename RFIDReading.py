@@ -1,5 +1,8 @@
 import csv
 import os
+import unicodedata
+import time
+import threading
 
 # ファイルパス設定
 INPUT_FILE = r'C:\Users\mugia\OneDrive\デスクトップ\Work\Study\PreInput.csv'
@@ -70,12 +73,40 @@ def label_data(processed_file, output_file, labeled_data):
             # ラベル付け済みの場合はスキップ
             if rfid_id in labeled_data:
                 continue
-
             # ラベル付け
             print(f"データ：{rfid_id}")
             label = input("このデータに対するラベルを入力してください：")
             writer.writerow([rfid_id, label])
-
+            
+# RFID読み取り時間を計測し、未読み取りIDを出力する
+def monitor_rfid_reading():
+    active_tags = {}
+    all_tags = set(label_data.keys()) # PreOutput.csvから追跡
+    
+    while True:
+        # 仮のタグIDのリスト（リーダーから取得する処理に書き換え）
+        read_tags = ["Tag12345", "Tag67890"] #  ここをリーダーからの読み取り結果に変更
+        current_time = time.time()
+        
+        # # 未読み取りタグを追跡するため、すべてのタグを記録
+        # all_tags.update(read_tags)
+        
+        for tag in read_tags:
+            if tag not in active_tags:
+                active_tags[tag] = current_time # 初回読み込み時間を記録
+                
+        for tag in list(active_tags.keys()):
+            if tag not in read_tags:
+                duration = time.time() - active_tags.pop(tag)
+                print(f"Tag {tag} was read for {duration:.2f} seconds")
+        
+        # 未読み取りたぐを出力
+        unread_tags = all_tags - set(active_tags.keys()) - set(read_tags)
+        for unread_tag in unread_tags:
+            print(f"Unread Tag: {unread_tag}")
+            
+        time.sleep(1) #1秒感覚でチェック
+        
 # メイン処理
 def main():
     # ラベル済みデータをロード
@@ -83,7 +114,11 @@ def main():
 
     # 入力データを処理して保存
     preprocess_input(INPUT_FILE, PROCESSED_FILE)
-
+    
+    # RFID読み取り時間計測を並列で実行
+    monitor_thread = threading.Thread(target=monitor_rfid_reading, args=(labeled_data), daemon=True)
+    monitor_thread.start()
+    
     # ラベル付けを実施
     label_data(PROCESSED_FILE, OUTPUT_FILE, labeled_data)
 
